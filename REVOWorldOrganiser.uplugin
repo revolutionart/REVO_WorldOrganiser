@@ -1,0 +1,31 @@
+{
+  "FileVersion": 3,
+  "Version": 2,
+  "VersionName": "1.0.1",
+  "FriendlyName": "REVO World Organiser",
+  "Description": "Advanced tool for selecting and organizing actors within volumes. Features include multiple selection modes, actor type filtering, tag-based filtering, automatic folder organization, data layer management, and preset configurations.",
+  "Category": "Editor",
+  "CreatedBy": "Revolutionart",
+  "CreatedByURL": "https://revolutionart.nl/",
+  "DocsURL": "https://revolutionart.nl/",
+  "MarketplaceURL": "",
+  "SupportURL": "https://revolutionart.nl/",
+  "CanContainContent": false,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "EngineVersion": "5.7.0",
+  "Modules": [
+    {
+      "Name": "REVOWorldOrganiser",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ],
+  "Plugins": [
+    {
+      "Name": "Niagara",
+      "Enabled": true
+    }
+  ]
+}
