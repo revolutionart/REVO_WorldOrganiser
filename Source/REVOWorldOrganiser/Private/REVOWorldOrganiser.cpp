@@ -48,7 +48,9 @@ void FREVOWorldOrganiserModule::StartupModule() {
   // Register the editor mode
   FEditorModeRegistry::Get().RegisterMode<FOrganisationEdMode>(
       FOrganisationEdMode::EM_OrganisationModeId,
-      LOCTEXT("OrganisationModeName", "Organisation"), FSlateIcon(), true);
+      FText::FromString("REVO World Organiser"),
+      FSlateIcon(FREVOWorldOrganiserStyle::GetStyleSetName(), "REVOWorldOrganiser.ToolbarIcon"),
+      true);
 
   CommandList = MakeShared<FUICommandList>();
   CommandList->MapAction(
