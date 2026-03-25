@@ -488,8 +488,8 @@ bool PassesClassPickerFilter(AActor *Actor,
     return true; // Filter disabled, all actors pass
   }
 
-  bool bHasActorFilter = !Settings.SelectedActorClassPath.IsEmpty();
-  bool bHasComponentFilter = !Settings.SelectedComponentClassPath.IsEmpty();
+  bool bHasActorFilter = Settings.SelectedActorClassPaths.Num() > 0;
+  bool bHasComponentFilter = Settings.SelectedComponentClassPaths.Num() > 0;
 
   // If neither filter is set, no actors pass
   if (!bHasActorFilter && !bHasComponentFilter) {
@@ -499,43 +499,46 @@ bool PassesClassPickerFilter(AActor *Actor,
   bool bPassesActorClass = true;
   bool bPassesComponentClass = true;
 
-  // Check actor class if specified
+  // Check actor class if any specified (OR within actor classes)
   if (bHasActorFilter) {
-    UClass *TargetActorClass =
-        LoadObject<UClass>(nullptr, *Settings.SelectedActorClassPath);
-    if (TargetActorClass) {
-      bPassesActorClass = Actor->IsA(TargetActorClass);
-    } else {
-      bPassesActorClass = false; // Failed to load class
+    bPassesActorClass = false;
+    for (const FString &ClassPath : Settings.SelectedActorClassPaths) {
+      UClass *TargetActorClass =
+          LoadObject<UClass>(nullptr, *ClassPath);
+      if (TargetActorClass && Actor->IsA(TargetActorClass)) {
+        bPassesActorClass = true;
+        break;
+      }
     }
   }
 
-  // Check component class if specified
+  // Check component class if any specified (OR within component classes)
   if (bHasComponentFilter) {
-    UClass *TargetComponentClass =
-        LoadObject<UClass>(nullptr, *Settings.SelectedComponentClassPath);
-    if (TargetComponentClass) {
-      bPassesComponentClass = false; // Assume false until we find a match
+    bPassesComponentClass = false;
 
-      TInlineComponentArray<UActorComponent *> Components;
-      Actor->GetComponents(Components);
+    TInlineComponentArray<UActorComponent *> Components;
+    Actor->GetComponents(Components);
 
-      for (UActorComponent *Component : Components) {
-        if (Component && Component->IsA(TargetComponentClass)) {
-          bPassesComponentClass = true;
+    for (const FString &ClassPath : Settings.SelectedComponentClassPaths) {
+      UClass *TargetComponentClass =
+          LoadObject<UClass>(nullptr, *ClassPath);
+      if (TargetComponentClass) {
+        for (UActorComponent *Component : Components) {
+          if (Component && Component->IsA(TargetComponentClass)) {
+            bPassesComponentClass = true;
+            break;
+          }
+        }
+        if (bPassesComponentClass) {
           break;
         }
       }
-    } else {
-      bPassesComponentClass = false; // Failed to load class
     }
   }
 
-  bool bResult = bPassesActorClass && bPassesComponentClass;
-
   // If both filters specified, both must pass (AND logic)
   // If only one filter specified, only that one needs to pass
-  return bResult;
+  return bPassesActorClass && bPassesComponentClass;
 }
 
 bool IsExcludedByClassFilters(AActor *Actor,
@@ -687,8 +690,8 @@ int32 FREVOWorldOrganiserModule::RunPreview() {
   const bool bHasActorTypeFilter = Settings.ActorTypeMask != 0;
   const bool bHasClassPickerFilter =
       Settings.bEnableClassPickerFilter &&
-      (!Settings.SelectedActorClassPath.IsEmpty() ||
-       !Settings.SelectedComponentClassPath.IsEmpty());
+      (Settings.SelectedActorClassPaths.Num() > 0 ||
+       Settings.SelectedComponentClassPaths.Num() > 0);
   const bool bHasExcludeClassFilter =
       Settings.ExcludeActorClassList.Num() > 0 ||
       Settings.ExcludeComponentClassList.Num() > 0;
@@ -791,8 +794,8 @@ int32 FREVOWorldOrganiserModule::RunSelection() {
   const bool bHasActorTypeFilter = Settings.ActorTypeMask != 0;
   const bool bHasClassPickerFilter =
       Settings.bEnableClassPickerFilter &&
-      (!Settings.SelectedActorClassPath.IsEmpty() ||
-       !Settings.SelectedComponentClassPath.IsEmpty());
+      (Settings.SelectedActorClassPaths.Num() > 0 ||
+       Settings.SelectedComponentClassPaths.Num() > 0);
   const bool bHasExcludeClassFilter =
       Settings.ExcludeActorClassList.Num() > 0 ||
       Settings.ExcludeComponentClassList.Num() > 0;
@@ -905,8 +908,8 @@ int32 FREVOWorldOrganiserModule::RunMoveAndOrganize() {
   const bool bHasActorTypeFilter = Settings.ActorTypeMask != 0;
   const bool bHasClassPickerFilter =
       Settings.bEnableClassPickerFilter &&
-      (!Settings.SelectedActorClassPath.IsEmpty() ||
-       !Settings.SelectedComponentClassPath.IsEmpty());
+      (Settings.SelectedActorClassPaths.Num() > 0 ||
+       Settings.SelectedComponentClassPaths.Num() > 0);
   const bool bHasIncludeTagFilter = Settings.IncludeTagList.Num() > 0;
   
   // Only INCLUDE filters trigger volume-based selection.

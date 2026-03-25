@@ -69,10 +69,10 @@ FString VolumeSelectionSettings::SerializeToJson(
   // Class Picker Filter
   Root->SetBoolField(TEXT("EnableClassPickerFilter"),
                      Settings.bEnableClassPickerFilter);
-  Root->SetStringField(TEXT("SelectedActorClassPath"),
-                       Settings.SelectedActorClassPath);
-  Root->SetStringField(TEXT("SelectedComponentClassPath"),
-                       Settings.SelectedComponentClassPath);
+  Root->SetArrayField(TEXT("SelectedActorClassPaths"),
+                      StringsToJson(Settings.SelectedActorClassPaths));
+  Root->SetArrayField(TEXT("SelectedComponentClassPaths"),
+                      StringsToJson(Settings.SelectedComponentClassPaths));
 
   Root->SetBoolField(TEXT("MoveToFolder"), Settings.bMoveToFolder);
   Root->SetStringField(TEXT("TargetFolderPath"),
@@ -144,10 +144,14 @@ bool VolumeSelectionSettings::DeserializeFromJson(
   if (Root->HasField(TEXT("EnableClassPickerFilter"))) {
     OutSettings.bEnableClassPickerFilter =
         Root->GetBoolField(TEXT("EnableClassPickerFilter"));
-    OutSettings.SelectedActorClassPath =
-        Root->GetStringField(TEXT("SelectedActorClassPath"));
-    OutSettings.SelectedComponentClassPath =
-        Root->GetStringField(TEXT("SelectedComponentClassPath"));
+  }
+  if (Root->HasField(TEXT("SelectedActorClassPaths"))) {
+    JsonToStrings(Root->GetArrayField(TEXT("SelectedActorClassPaths")),
+                  OutSettings.SelectedActorClassPaths);
+  }
+  if (Root->HasField(TEXT("SelectedComponentClassPaths"))) {
+    JsonToStrings(Root->GetArrayField(TEXT("SelectedComponentClassPaths")),
+                  OutSettings.SelectedComponentClassPaths);
   }
 
   OutSettings.bMoveToFolder = Root->GetBoolField(TEXT("MoveToFolder"));

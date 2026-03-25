@@ -2210,26 +2210,57 @@ void FOrganisationEdModeToolkit::Init(
                                 .Margin(FMargin(6.0f, 0.0f, 8.0f, 0.0f))]] +
                 SVerticalBox::Slot().AutoHeight().Padding(2.0f, 4.0f)
                     [SNew(SHorizontalBox) +
-                     SHorizontalBox::Slot().FillWidth(1.0f).Padding(
-                         2.0f)[SNew(SVerticalBox) +
-                               SVerticalBox::Slot().AutoHeight().Padding(
-                                   0.0f,
-                                   2.0f)[SNew(STextBlock)
-                                             .Text(LOCTEXT("ActorClassLabel",
-                                                           "Actor Class"))] +
-                               SVerticalBox::Slot().AutoHeight()
+                     SHorizontalBox::Slot().FillWidth(1.0f).Padding(2.0f)
+                         [SNew(SVerticalBox) +
+                          SVerticalBox::Slot().AutoHeight().Padding(0.0f, 2.0f)
+                              [SNew(STextBlock)
+                                   .Text(LOCTEXT("ActorClassLabel",
+                                                 "Actor Class"))
+                                   .Font(FCoreStyle::GetDefaultFontStyle(
+                                       "Italic", 8))] +
+                          SVerticalBox::Slot().AutoHeight()
+                              [SNew(SHorizontalBox) +
+                               SHorizontalBox::Slot().FillWidth(1.0f).Padding(
+                                   2.0f)
                                    [SAssignNew(ActorClassComboBox,
                                                SComboBox<TSharedPtr<UClass *>>)
+                                        .ToolTipText(LOCTEXT(
+                                            "ActorClassTooltip",
+                                            "Select an actor class to add"))
                                         .OptionsSource(&ActorClassOptions)
+                                        .OnSelectionChanged_Lambda(
+                                            [Module,
+                                             this](TSharedPtr<UClass *>
+                                                       SelectedClass,
+                                                   ESelectInfo::Type) {
+                                              if (Module &&
+                                                  SelectedClass.IsValid() &&
+                                                  *SelectedClass) {
+                                                UClass *NewClass =
+                                                    *SelectedClass;
+                                                SelectedActorClasses.AddUnique(
+                                                    NewClass);
+                                                Module->GetSettings()
+                                                    .SelectedActorClassPaths
+                                                    .AddUnique(
+                                                        NewClass
+                                                            ->GetPathName());
+                                                if (ActorClassComboBox
+                                                        .IsValid()) {
+                                                  ActorClassComboBox
+                                                      ->SetSelectedItem(
+                                                          nullptr);
+                                                }
+                                              }
+                                            })
                                         .OnGenerateWidget_Lambda(
                                             [](TSharedPtr<UClass *> Item) {
                                               FString DisplayName =
-                                                  TEXT("None");
+                                                  TEXT("Select actor "
+                                                       "class...");
                                               if (Item.IsValid() && *Item) {
                                                 DisplayName =
                                                     (*Item)->GetName();
-                                                // Trim _C from blueprint class
-                                                // names
                                                 if (DisplayName.EndsWith(
                                                         TEXT("_C"))) {
                                                   DisplayName.LeftChopInline(2);
@@ -2238,98 +2269,162 @@ void FOrganisationEdModeToolkit::Init(
                                               return SNew(STextBlock)
                                                   .Text(FText::FromString(
                                                       DisplayName));
-                                            })
-                                        .OnSelectionChanged_Lambda(
-                                            [this, Module](
-                                                TSharedPtr<UClass *>
-                                                    NewSelection,
-                                                ESelectInfo::Type SelectInfo) {
-                                              if (NewSelection.IsValid()) {
-                                                SelectedActorClass =
-                                                    *NewSelection;
-                                                if (Module) {
-                                                  Module->GetSettings()
-                                                      .SelectedActorClassPath =
-                                                      SelectedActorClass
-                                                          ? SelectedActorClass
-                                                                ->GetPathName()
-                                                          : FString();
-                                                }
-                                              }
                                             })[SNew(STextBlock)
-                                                   .Text_Lambda([this]() {
-                                                     if (SelectedActorClass) {
-                                                       FString DisplayName =
-                                                           SelectedActorClass
-                                                               ->GetName();
-                                                       if (DisplayName.EndsWith(
-                                                               TEXT("_C"))) {
-                                                         DisplayName
-                                                             .LeftChopInline(2);
-                                                       }
-                                                       return FText::FromString(
-                                                           DisplayName);
-                                                     }
-                                                     return LOCTEXT("None",
-                                                                    "None");
-                                                   })]]] +
+                                                   .Text(LOCTEXT(
+                                                       "ActorClassSelect",
+                                                       "Select actor "
+                                                       "class..."))]] +
+                               SHorizontalBox::Slot().AutoWidth().Padding(2.0f)
+                                   [SNew(SButton)
+                                        .Text(LOCTEXT("ActorClassClear",
+                                                      "Clear"))
+                                        .OnClicked_Lambda([Module, this]() {
+                                          if (Module) {
+                                            Module->GetSettings()
+                                                .SelectedActorClassPaths
+                                                .Empty();
+                                          }
+                                          SelectedActorClasses.Empty();
+                                          return FReply::Handled();
+                                        })
+                                        .IsEnabled_Lambda([this]() {
+                                          return SelectedActorClasses.Num() > 0;
+                                        })]] +
+                          SVerticalBox::Slot().AutoHeight().Padding(2.0f)
+                              [SNew(STextBlock)
+                                   .Text_Lambda([this]() {
+                                     if (SelectedActorClasses.Num() == 0) {
+                                       return LOCTEXT("NoActorClasses",
+                                                      "No actor classes");
+                                     }
+                                     FString ClassList;
+                                     for (int32 i = 0;
+                                          i < SelectedActorClasses.Num();
+                                          ++i) {
+                                       if (i > 0) {
+                                         ClassList += TEXT(", ");
+                                       }
+                                       FString DisplayName =
+                                           SelectedActorClasses[i]->GetName();
+                                       if (DisplayName.EndsWith(TEXT("_C"))) {
+                                         DisplayName.LeftChopInline(2);
+                                       }
+                                       ClassList += DisplayName;
+                                     }
+                                     return FText::FromString(ClassList);
+                                   })
+                                   .AutoWrapText(true)
+                                   .ColorAndOpacity(
+                                       FLinearColor(0.7f, 0.7f, 0.7f))]] +
                      SHorizontalBox::Slot().FillWidth(1.0f).Padding(2.0f)
                          [SNew(SVerticalBox) +
                           SVerticalBox::Slot().AutoHeight().Padding(0.0f, 2.0f)
                               [SNew(STextBlock)
                                    .Text(LOCTEXT("ComponentClassLabel",
-                                                 "Component Class"))] +
+                                                 "Component Class"))
+                                   .Font(FCoreStyle::GetDefaultFontStyle(
+                                       "Italic", 8))] +
                           SVerticalBox::Slot().AutoHeight()
-                              [SAssignNew(ComponentClassComboBox,
-                                          SComboBox<TSharedPtr<UClass *>>)
-                                   .OptionsSource(&ComponentClassOptions)
-                                   .OnGenerateWidget_Lambda(
-                                       [](TSharedPtr<UClass *> Item) {
-                                         FString DisplayName = TEXT("None");
-                                         if (Item.IsValid() && *Item) {
-                                           DisplayName = (*Item)->GetName();
-                                           // Trim _C from blueprint class names
-                                           if (DisplayName.EndsWith(
-                                                   TEXT("_C"))) {
-                                             DisplayName.LeftChopInline(2);
-                                           }
-                                         }
-                                         return SNew(STextBlock)
-                                             .Text(FText::FromString(
-                                                 DisplayName));
-                                       })
-                                   .OnSelectionChanged_Lambda(
-                                       [this, Module](
-                                           TSharedPtr<UClass *> NewSelection,
-                                           ESelectInfo::Type SelectInfo) {
-                                         if (NewSelection.IsValid()) {
-                                           SelectedComponentClass =
-                                               *NewSelection;
-                                           if (Module) {
-                                             Module->GetSettings()
-                                                 .SelectedComponentClassPath =
-                                                 SelectedComponentClass
-                                                     ? SelectedComponentClass
-                                                           ->GetPathName()
-                                                     : FString();
-                                           }
-                                         }
-                                       })[SNew(STextBlock)
-                                              .Text_Lambda([this]() {
-                                                if (SelectedComponentClass) {
-                                                  FString DisplayName =
-                                                      SelectedComponentClass
-                                                          ->GetName();
-                                                  if (DisplayName.EndsWith(
-                                                          TEXT("_C"))) {
-                                                    DisplayName.LeftChopInline(
-                                                        2);
-                                                  }
-                                                  return FText::FromString(
-                                                      DisplayName);
+                              [SNew(SHorizontalBox) +
+                               SHorizontalBox::Slot().FillWidth(1.0f).Padding(
+                                   2.0f)
+                                   [SAssignNew(ComponentClassComboBox,
+                                               SComboBox<TSharedPtr<UClass *>>)
+                                        .ToolTipText(LOCTEXT(
+                                            "ComponentClassTooltip",
+                                            "Select a component class to add"))
+                                        .OptionsSource(&ComponentClassOptions)
+                                        .OnSelectionChanged_Lambda(
+                                            [Module,
+                                             this](TSharedPtr<UClass *>
+                                                       SelectedClass,
+                                                   ESelectInfo::Type) {
+                                              if (Module &&
+                                                  SelectedClass.IsValid() &&
+                                                  *SelectedClass) {
+                                                UClass *NewClass =
+                                                    *SelectedClass;
+                                                SelectedComponentClasses
+                                                    .AddUnique(NewClass);
+                                                Module->GetSettings()
+                                                    .SelectedComponentClassPaths
+                                                    .AddUnique(
+                                                        NewClass
+                                                            ->GetPathName());
+                                                if (ComponentClassComboBox
+                                                        .IsValid()) {
+                                                  ComponentClassComboBox
+                                                      ->SetSelectedItem(
+                                                          nullptr);
                                                 }
-                                                return LOCTEXT("None", "None");
-                                              })]]]] +
+                                              }
+                                            })
+                                        .OnGenerateWidget_Lambda(
+                                            [](TSharedPtr<UClass *> Item) {
+                                              FString DisplayName =
+                                                  TEXT("Select component "
+                                                       "class...");
+                                              if (Item.IsValid() && *Item) {
+                                                DisplayName =
+                                                    (*Item)->GetName();
+                                                if (DisplayName.EndsWith(
+                                                        TEXT("_C"))) {
+                                                  DisplayName.LeftChopInline(2);
+                                                }
+                                              }
+                                              return SNew(STextBlock)
+                                                  .Text(FText::FromString(
+                                                      DisplayName));
+                                            })[SNew(STextBlock)
+                                                   .Text(LOCTEXT(
+                                                       "ComponentClassSelect",
+                                                       "Select component "
+                                                       "class..."))]] +
+                               SHorizontalBox::Slot().AutoWidth().Padding(2.0f)
+                                   [SNew(SButton)
+                                        .Text(LOCTEXT("ComponentClassClear",
+                                                      "Clear"))
+                                        .OnClicked_Lambda([Module, this]() {
+                                          if (Module) {
+                                            Module->GetSettings()
+                                                .SelectedComponentClassPaths
+                                                .Empty();
+                                          }
+                                          SelectedComponentClasses.Empty();
+                                          return FReply::Handled();
+                                        })
+                                        .IsEnabled_Lambda([this]() {
+                                          return SelectedComponentClasses.Num() >
+                                                 0;
+                                        })]] +
+                          SVerticalBox::Slot().AutoHeight().Padding(2.0f)
+                              [SNew(STextBlock)
+                                   .Text_Lambda([this]() {
+                                     if (SelectedComponentClasses.Num() == 0) {
+                                       return LOCTEXT(
+                                           "NoComponentClasses",
+                                           "No component classes");
+                                     }
+                                     FString ClassList;
+                                     for (int32 i = 0;
+                                          i < SelectedComponentClasses.Num();
+                                          ++i) {
+                                       if (i > 0) {
+                                         ClassList += TEXT(", ");
+                                       }
+                                       FString DisplayName =
+                                           SelectedComponentClasses[i]
+                                               ->GetName();
+                                       if (DisplayName.EndsWith(TEXT("_C"))) {
+                                         DisplayName.LeftChopInline(2);
+                                       }
+                                       ClassList += DisplayName;
+                                     }
+                                     return FText::FromString(ClassList);
+                                   })
+                                   .AutoWrapText(true)
+                                   .ColorAndOpacity(
+                                       FLinearColor(0.7f, 0.7f, 0.7f))]]] +
                 SVerticalBox::Slot().AutoHeight().Padding(
                     2.0f, 8.0f, 2.0f,
                     2.0f)[SNew(SButton)
@@ -2723,10 +2818,19 @@ void FOrganisationEdModeToolkit::Init(
                              }
 
                              // Check if using volume-based selection or current
-                             // selection
+                             // selection. Volume mode requires at least one
+                             // include filter — without filters, fall back to
+                             // the current outliner selection regardless of
+                             // whether a volume target is set.
                              AActor *VolumeActor =
                                  Module->GetSettings().TargetVolumeActor.Get();
-                             const bool bUsingVolume = (VolumeActor != nullptr);
+                             const bool bHasIncludeFilters =
+                                 (Module->GetSettings().ActorTypeMask != 0) ||
+                                 (Module->GetSettings().bEnableClassPickerFilter &&
+                                  (Module->GetSettings().SelectedActorClassPaths.Num() > 0 ||
+                                   Module->GetSettings().SelectedComponentClassPaths.Num() > 0)) ||
+                                 (Module->GetSettings().IncludeTagList.Num() > 0);
+                             const bool bUsingVolume = (VolumeActor != nullptr) && bHasIncludeFilters;
                              int32 ActorCount = 0;
 
                              if (bUsingVolume) {
@@ -2800,10 +2904,10 @@ void FOrganisationEdModeToolkit::Init(
                             Module->GetSettings().ActorTypeMask != 0;
                         const bool bHasClassPickerFilter =
                             Module->GetSettings().bEnableClassPickerFilter &&
-                            (!Module->GetSettings()
-                                  .SelectedActorClassPath.IsEmpty() ||
-                             !Module->GetSettings()
-                                  .SelectedComponentClassPath.IsEmpty());
+                            (Module->GetSettings()
+                                  .SelectedActorClassPaths.Num() > 0 ||
+                             Module->GetSettings()
+                                  .SelectedComponentClassPaths.Num() > 0);
                         const bool bHasExcludeClassFilter =
                             Module->GetSettings().ExcludeActorClassList.Num() >
                                 0 ||
@@ -2843,10 +2947,10 @@ void FOrganisationEdModeToolkit::Init(
                             Module->GetSettings().ActorTypeMask != 0;
                         const bool bHasClassPickerFilter =
                             Module->GetSettings().bEnableClassPickerFilter &&
-                            (!Module->GetSettings()
-                                  .SelectedActorClassPath.IsEmpty() ||
-                             !Module->GetSettings()
-                                  .SelectedComponentClassPath.IsEmpty());
+                            (Module->GetSettings()
+                                  .SelectedActorClassPaths.Num() > 0 ||
+                             Module->GetSettings()
+                                  .SelectedComponentClassPaths.Num() > 0);
                         const bool bHasExcludeClassFilter =
                             Module->GetSettings().ExcludeActorClassList.Num() >
                                 0 ||
@@ -3014,39 +3118,17 @@ void FOrganisationEdModeToolkit::Init(
 
   // Restore selected classes from saved paths (if any)
   if (Module) {
-    if (!Module->GetSettings().SelectedActorClassPath.IsEmpty()) {
-      UClass *LoadedClass = LoadObject<UClass>(
-          nullptr, *Module->GetSettings().SelectedActorClassPath);
+    for (const FString &ClassPath : Module->GetSettings().SelectedActorClassPaths) {
+      UClass *LoadedClass = LoadObject<UClass>(nullptr, *ClassPath);
       if (LoadedClass) {
-        SelectedActorClass = LoadedClass;
-        // Find and select in combo box
-        for (int32 i = 0; i < ActorClassOptions.Num(); ++i) {
-          if (ActorClassOptions[i].IsValid() &&
-              *ActorClassOptions[i] == LoadedClass) {
-            if (ActorClassComboBox.IsValid()) {
-              ActorClassComboBox->SetSelectedItem(ActorClassOptions[i]);
-            }
-            break;
-          }
-        }
+        SelectedActorClasses.AddUnique(LoadedClass);
       }
     }
 
-    if (!Module->GetSettings().SelectedComponentClassPath.IsEmpty()) {
-      UClass *LoadedClass = LoadObject<UClass>(
-          nullptr, *Module->GetSettings().SelectedComponentClassPath);
+    for (const FString &ClassPath : Module->GetSettings().SelectedComponentClassPaths) {
+      UClass *LoadedClass = LoadObject<UClass>(nullptr, *ClassPath);
       if (LoadedClass) {
-        SelectedComponentClass = LoadedClass;
-        // Find and select in combo box
-        for (int32 i = 0; i < ComponentClassOptions.Num(); ++i) {
-          if (ComponentClassOptions[i].IsValid() &&
-              *ComponentClassOptions[i] == LoadedClass) {
-            if (ComponentClassComboBox.IsValid()) {
-              ComponentClassComboBox->SetSelectedItem(ComponentClassOptions[i]);
-            }
-            break;
-          }
-        }
+        SelectedComponentClasses.AddUnique(LoadedClass);
       }
     }
 
@@ -3340,8 +3422,8 @@ void FOrganisationEdModeToolkit::RefreshClassPickerOptions() {
   ComponentClassOptions.Empty();
 
   // Reset selections
-  SelectedActorClass = nullptr;
-  SelectedComponentClass = nullptr;
+  SelectedActorClasses.Empty();
+  SelectedComponentClasses.Empty();
 
   // Collect unique classes
   TSet<UClass *> UniqueActorClasses;
@@ -3424,8 +3506,8 @@ void FOrganisationEdModeToolkit::RefreshClassPickerOptions() {
   // Clear saved paths since we reset selections
   FREVOWorldOrganiserModule *Module = GetSelectActorsModule();
   if (Module) {
-    Module->GetSettings().SelectedActorClassPath.Empty();
-    Module->GetSettings().SelectedComponentClassPath.Empty();
+    Module->GetSettings().SelectedActorClassPaths.Empty();
+    Module->GetSettings().SelectedComponentClassPaths.Empty();
   }
 
   // Show notification

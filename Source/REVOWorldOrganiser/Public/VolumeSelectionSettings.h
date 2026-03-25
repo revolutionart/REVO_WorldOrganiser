@@ -52,8 +52,8 @@ struct FVolumeSelectionSettings {
 
   // Class Picker Filter
   bool bEnableClassPickerFilter = false;
-  FString SelectedActorClassPath;
-  FString SelectedComponentClassPath;
+  TArray<FString> SelectedActorClassPaths;
+  TArray<FString> SelectedComponentClassPaths;
 
   bool bMoveToFolder = false;
   FName TargetFolderPath;

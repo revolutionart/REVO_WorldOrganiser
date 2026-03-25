@@ -52,8 +52,8 @@ private:
   TArray<TSharedPtr<UClass *>> ComponentClassOptions;
 
   /** Selected classes from dropdowns (stored as pointers during runtime) */
-  UClass *SelectedActorClass = nullptr;
-  UClass *SelectedComponentClass = nullptr;
+  TArray<UClass *> SelectedActorClasses;
+  TArray<UClass *> SelectedComponentClasses;
 
   /** Combo boxes for class selection */
   TSharedPtr<class SComboBox<TSharedPtr<UClass *>>> ActorClassComboBox;
