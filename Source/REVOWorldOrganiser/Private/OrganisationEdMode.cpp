@@ -7,7 +7,7 @@
 
 #define LOCTEXT_NAMESPACE "OrganisationEdMode"
 
-const FEditorModeID FOrganisationEdMode::EM_OrganisationModeId = TEXT("EM_OrganisationMode");
+const FEditorModeID FOrganisationEdMode::EM_OrganisationModeId = TEXT("REVO_WorldOrganiser.EM_OrganisationMode");
 
 FOrganisationEdMode::FOrganisationEdMode() = default;
 
